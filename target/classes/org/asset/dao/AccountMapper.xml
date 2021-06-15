@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.asset.dao.AccountMapper">
+    <!--sql方法，可以引用这个方法进行拼接-->
+    <sql id="whereById">
+        WHERE id=#{id}
+    </sql>
+
+    <!--增改删无需增加resultType类型说明，框架自动添加-->
+    <insert id="add" parameterType="org.asset.model.Account">
+        INSERT INTO staff_table (account, passwd, staff_state) VALUES (#{account}, #{passwd}, #{staff_state})
+    </insert>
+
+    <update id="change">
+        UPDATE staff_table SET account=#{account} <include refid="whereById"></include>
+    </update>
+
+    <delete id="del">
+        DELETE FROM staff_table <include refid="whereById"></include>
+    </delete>
+
+    <!--查询需要自行添加返回值类型-->
+    <select id="getById" resultType="org.asset.model.Account">
+        SELECT * FROM staff_table <include refid="whereById"></include>
+    </select>
+
+    <select id="getAll" resultType="org.asset.model.Account">
+        SELECT * FROM staff_table
+    </select>
+
+    <!--分页-->
+    <select id="getByLimit" resultType="org.asset.model.Account">
+        SELECT * FROM staff_table
+    </select>
+
+    <!--作用1：model中的Account表的字段与数据库中表的字段不同，进行映射 -->
+    <!--作用2：数据库中的表名不同，也可以用xxx进行映射对应的表，将resultType换乘resultMap="xxx"即可-->
+    <resultMap id="xxx" type="org.asset.model.Account">
+        <!-- Account表中的passwd字段映射到数据库中的pass_wd字段       -->
+        <result property="passwd" column="pass_wd"></result>
+    </resultMap>
+
+    <!--多条件查询-->
+    <!--（执行whre中语句时，会自动在sql中加where；AND/OR必须要加，否程序无法判断）-->
+    <!-- 如果不用where标签的情况，也可以用SELECT  * FROM staff_table where 1=1 and  AND account=#{account} 的思维，加个没有用的条件1=1也可以-->
+    <select id="getByWhere" resultType="org.asset.model.Account">
+        SELECT  * FROM staff_table
+        <where>
+            <if test="account!=null and account!=''">
+                AND account=#{account}
+            </if>
+            <if test="staff_state!=null">
+                AND staff_state=#{staff_state};
+            </if>
+        </where>
+    </select>
+
+    <!--删除多项 -->
+    <!--条件IN的语句中间需用逗号“，”隔开,separator分割器-->
+    <!--(如果不用separator分割器，也可以先加逗号，如“#{id}，”，再使用trim标签去除最后一个逗号）-->
+    <!--trim标签说明——prefix:加前缀；prefixOverrides：去除第一个前缀；suffix：加后缀；suffixOverrides：去除最后一个后缀-->
+    <delete id="delMore">
+        DELETE FROM staff_table WHERE id IN
+        (
+        <trim suffixOverrides=",">
+            <foreach collection="ids" item="id" separator=",">
+                #{id}
+            </foreach>
+        </trim>
+        )
+    </delete>
+    <!--建立连表，按条件查询-->
+    <select id="getAccountAndMoney" resultMap="getAccountAndMoneyResultMap">
+        SELECT
+            t1.*,
+            t2.id mid,
+            t2.sum
+        FROM
+            staff_table t1
+            LEFT JOIN money t2 ON t1.id = t2.aid
+        WHERE
+            t1.id = #{id};
+    </select>
+    <resultMap id="getAccountAndMoneyResultMap" type="org.asset.dto.AccountDto">
+        <result column="id" property="id"></result>
+        <result column="id" property="mo.id"></result>
+        <result column="mid" property="mo.mid"></result>
+        <result column="sum" property="mo.sum"></result>
+    </resultMap>
+    <!--建立连表，查询所有数据-->
+    <select id="getAccountAndMoneyAll" resultMap="getAccountAndMoneyAllResultMap">
+        SELECT
+            t1.*,
+            t2.id mid,
+            t2.sum
+        FROM
+            staff_table t1
+            LEFT JOIN money t2 ON t1.id = t2.aid
+    </select>
+    <resultMap id="getAccountAndMoneyAllResultMap" type="org.asset.dto.AccountDto">
+        <result column="id" property="id"></result>
+        <result column="mid" property="mo.id"></result>
+        <result column="id" property="mo.mid"></result>
+        <result column="sum" property="mo.sum"></result>
+    </resultMap>
+
+</mapper>
